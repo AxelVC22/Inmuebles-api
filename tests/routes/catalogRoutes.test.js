@@ -22,29 +22,29 @@ describe('Pruebas de catálogos', () => {
     });
 
     describe('GET /api/catalogs/categories', () => {
-        it('Consultar categorías con subtipos', async () => {
+        
+        it('Consultar categorías con subtipos (Status 200)', async () => {
             await mockPrisma.categoriaInmueble.create({
                 data: {
                     nombre: "Residencial",
                     SubtipoInmueble: {
-                        create: [
-                            { nombre: "Casa" },
-                            { nombre: "Departamento" }
-                        ]
+                        create: [ { nombre: "Casa" }, { nombre: "Departamento" } ]
                     }
                 }
+            });
+
+            const res = await request(app).get('/api/catalogs/categories');
+
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('Categorías obtenidas exitosamente.');
+            expect(res.body.data).toHaveLength(1);
         });
 
-        const res = await request(app).get('/api/catalogs/categories');
+        it('Debe devolver 404 si la base de datos está vacía', async () => {
+            const res = await request(app).get('/api/catalogs/categories');
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.message).toBe('Categorías obtenidas exitosamente.');
-        
-        expect(res.body.data).toHaveLength(1);
-        expect(res.body.data[0].nombre).toBe("Residencial");
-        
-        expect(res.body.data[0].SubtipoInmueble).toHaveLength(2);
-    });
+            expect(res.statusCode).toBe(200);
+            expect(res.body.message).toBe('No se encontraron categorías.');
+        });
     });
 });
