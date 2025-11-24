@@ -8,8 +8,13 @@ const getCategories = async (req, res, next) => {
             }
         });
 
+        if (!categories || categories.length === 0) {
+            return res.status(200).json({
+                message: 'No se encontraron categorías.'
+            });
+        }
+ 
         res.status(200).json({
-            success: true,
             message: 'Categorías obtenidas exitosamente.',
             data: categories
         });

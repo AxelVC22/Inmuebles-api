@@ -32,6 +32,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/catalogs', require('./src/routes/catalogRoutes'));
+app.use('/api/users', require('./src/routes/preferencesRoutes'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
