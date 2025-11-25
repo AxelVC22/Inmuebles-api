@@ -11,7 +11,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 const corsOptions = {
   origin: isProduction ? process.env.ALLOWED_ORIGIN : '*',
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -19,7 +19,7 @@ if (isProduction) {
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
-    message: {error: 'Muchas solicitudes desde esta IP, por favor intente más tarde.'}
+    message: { error: 'Muchas solicitudes desde esta IP, por favor intente más tarde.' },
   });
   app.use(limiter);
 }
@@ -27,18 +27,19 @@ if (isProduction) {
 app.use(morgan(isProduction ? 'combined' : 'dev'));
 
 app.get('/', (req, res) => {
-  res.send({message: 'Bienvenido a la API de Inmuebles a tu alcance'});
+  res.send({ message: 'Bienvenido a la API de Inmuebles a tu alcance' });
 });
 
 app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/catalogs', require('./src/routes/catalogRoutes'));
 app.use('/api/users', require('./src/routes/preferencesRoutes'));
+app.use('/api/profile', require('./src/routes/profileRoutes'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send({ 
+  res.status(500).send({
     error: 'Error interno del servidor',
-    detail: isProduction ? null : err.message 
+    detail: isProduction ? null : err.message,
   });
 });
 
@@ -49,4 +50,3 @@ if (require.main === module) {
 }
 
 module.exports = app;
-
