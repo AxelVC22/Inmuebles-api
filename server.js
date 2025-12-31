@@ -32,9 +32,11 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/catalogs', require('./src/routes/catalogRoutes'));
+app.use('/api/interactions', require('./src/routes/interactionRoutes'));
+app.use('/api/payments', require('./src/routes/paymentRoutes'));
 app.use('/api/users', require('./src/routes/preferencesRoutes'));
 app.use('/api/profile', require('./src/routes/profileRoutes'));
-app.use('/api/payments', require('./src/routes/paymentRoutes'));
+app.use('/api/properties', require('./src/routes/propertyRoutes'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
