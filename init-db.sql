@@ -43,14 +43,8 @@ CREATE TABLE Usuario (
     estadoCuenta NVARCHAR(20) DEFAULT 'Activo' NOT NULL,
     rol NVARCHAR(20) NOT NULL, 
 
-    idDireccion INT NULL, 
+    idDireccion INT NOT NULL, 
     FOREIGN KEY (idDireccion) REFERENCES Direccion(idDireccion)
-);
-
-CREATE TABLE Administrador (
-    idUsuario INT PRIMARY KEY,
-    nivelAcceso NVARCHAR(50) NOT NULL DEFAULT 'Standard',
-    FOREIGN KEY (idUsuario) REFERENCES Usuario(idUsuario)
 );
 
 CREATE TABLE Arrendador (
@@ -88,7 +82,6 @@ CREATE TABLE Inmueble (
     superficieTotal DECIMAL(10,2) NOT NULL,
     antiguedad INT NOT NULL DEFAULT 0,
     pisoUbicacion INT NULL,
-    tipoConstruccion INT NOT NULL DEFAULT 1,
     mascotasPermitidas BIT NOT NULL DEFAULT 0,
     referencias NVARCHAR(255) NULL,
     
