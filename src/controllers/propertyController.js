@@ -2,6 +2,11 @@ const prisma = require('../prisma');
 const path = require('path');
 const sharp = require('sharp');
 const { validatePropertyData } = require('../utils/dataValidator');
+const {
+  formatPropertyWithImage,
+  propertySelectWithImage,
+  createPaginationResponse,
+} = require('../utils/propertyHelpers');
 
 const getPropertyById = async (req, res, next) => {
   try {
@@ -485,13 +490,7 @@ const getMyProperties = async (req, res, next) => {
     const properties = await prisma.inmueble.findMany({
       where: { idArrendador: userId },
       select: {
-        idInmueble: true,
-        titulo: true,
-        Direccion: {
-          select: {
-            ciudad: true,
-          },
-        },
+        ...propertySelectWithImage,
         Publicacion: {
           select: {
             estado: true,
@@ -500,17 +499,6 @@ const getMyProperties = async (req, res, next) => {
             precioRentaMensual: true,
             divisa: true,
           },
-        },
-        Archivo: {
-          where: { visible: true },
-          select: {
-            idArchivo: true,
-            datos: true,
-            nombreOriginal: true,
-            tipo: true,
-            extension: true,
-          },
-          take: 1,
         },
         _count: {
           select: {
@@ -523,36 +511,11 @@ const getMyProperties = async (req, res, next) => {
       },
     });
 
-    const formattedProperties = properties.map((property) => {
-      const precio =
-        property.Publicacion.tipoOperacion === 'Venta'
-          ? property.Publicacion.precioVenta
-          : property.Publicacion.precioRentaMensual;
-
-      let imagen = null;
-      if (property.Archivo && property.Archivo.length > 0) {
-        const archivo = property.Archivo[0];
-        const base64String = archivo.datos.toString('base64');
-        imagen = {
-          id: archivo.idArchivo,
-          nombre: archivo.nombreOriginal,
-          extension: archivo.extension,
-          url: `data:${archivo.tipo};base64,${base64String}`,
-        };
-      }
-
-      return {
-        id: property.idInmueble,
-        titulo: property.titulo,
-        ciudad: property.Direccion.ciudad,
-        precio: precio,
-        divisa: property.Publicacion.divisa,
-        tipoOperacion: property.Publicacion.tipoOperacion,
-        estadoPublicacion: property.Publicacion.estado,
-        totalVisitas: property._count.Visita,
-        imagen: imagen,
-      };
-    });
+    const formattedProperties = properties.map((property) => ({
+      ...formatPropertyWithImage(property),
+      estadoPublicacion: property.Publicacion.estado,
+      totalVisitas: property._count.Visita,
+    }));
 
     return res.status(200).json({
       success: true,
@@ -600,34 +563,7 @@ const searchProperties = async (req, res, next) => {
     const [properties, totalCount] = await Promise.all([
       prisma.inmueble.findMany({
         where: whereConditions,
-        select: {
-          idInmueble: true,
-          titulo: true,
-          Direccion: {
-            select: {
-              ciudad: true,
-            },
-          },
-          Publicacion: {
-            select: {
-              tipoOperacion: true,
-              precioVenta: true,
-              precioRentaMensual: true,
-              divisa: true,
-            },
-          },
-          Archivo: {
-            where: { visible: true },
-            select: {
-              idArchivo: true,
-              datos: true,
-              nombreOriginal: true,
-              tipo: true,
-              extension: true,
-            },
-            take: 1,
-          },
-        },
+        select: propertySelectWithImage,
         orderBy: {
           idInmueble: 'desc',
         },
@@ -637,53 +573,98 @@ const searchProperties = async (req, res, next) => {
       prisma.inmueble.count({ where: whereConditions }),
     ]);
 
-    const formattedProperties = properties.map((property) => {
-      const precio =
-        property.Publicacion.tipoOperacion === 'Venta'
-          ? property.Publicacion.precioVenta
-          : property.Publicacion.precioRentaMensual;
-
-      let imagen = null;
-      if (property.Archivo && property.Archivo.length > 0) {
-        const archivo = property.Archivo[0];
-        const base64String = archivo.datos.toString('base64');
-        imagen = {
-          id: archivo.idArchivo,
-          nombre: archivo.nombreOriginal,
-          extension: archivo.extension,
-          url: `data:${archivo.tipo};base64,${base64String}`,
-        };
-      }
-
-      return {
-        id: property.idInmueble,
-        titulo: property.titulo,
-        ciudad: property.Direccion.ciudad,
-        precio: precio,
-        divisa: property.Publicacion.divisa,
-        tipoOperacion: property.Publicacion.tipoOperacion,
-        imagen: imagen,
-      };
-    });
-
-    const totalPages = Math.ceil(totalCount / take);
-    const hasNextPage = parseInt(page) < totalPages;
-    const hasPreviousPage = parseInt(page) > 1;
+    const formattedProperties = properties.map(formatPropertyWithImage);
 
     return res.status(200).json({
       success: true,
       data: formattedProperties,
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages,
-        totalResults: totalCount,
-        resultsPerPage: take,
-        hasNextPage,
-        hasPreviousPage,
-      },
+      pagination: createPaginationResponse(page, take, totalCount),
       searchParams: {
         titulo: titulo || null,
         idCategoria: idCategoria ? parseInt(idCategoria) : null,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getRecommendedProperties = async (req, res, next) => {
+  try {
+    const userId = req.user.idUsuario;
+    const { page = 1, limit = 20 } = req.query;
+
+    const preferencias = await prisma.preferencias.findUnique({
+      where: { idUsuario: userId },
+    });
+
+    const whereConditions = {
+      Publicacion: {
+        estado: 'Publicada',
+      },
+    };
+
+    if (preferencias.idCategoria) {
+      whereConditions.SubtipoInmueble = {
+        idCategoria: preferencias.idCategoria,
+      };
+    }
+
+    if (preferencias.presupuestoMin || preferencias.presupuestoMax) {
+      whereConditions.Publicacion.OR = [];
+
+      const ventaCondition = { tipoOperacion: 'Venta' };
+      if (preferencias.presupuestoMin) {
+        ventaCondition.precioVenta = { gte: preferencias.presupuestoMin };
+      }
+      if (preferencias.presupuestoMax) {
+        ventaCondition.precioVenta = {
+          ...ventaCondition.precioVenta,
+          lte: preferencias.presupuestoMax,
+        };
+      }
+      whereConditions.Publicacion.OR.push(ventaCondition);
+
+      const rentaCondition = { tipoOperacion: 'Renta' };
+      if (preferencias.presupuestoMin) {
+        rentaCondition.precioRentaMensual = { gte: preferencias.presupuestoMin };
+      }
+      if (preferencias.presupuestoMax) {
+        rentaCondition.precioRentaMensual = {
+          ...rentaCondition.precioRentaMensual,
+          lte: preferencias.presupuestoMax,
+        };
+      }
+      whereConditions.Publicacion.OR.push(rentaCondition);
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    const [properties, totalCount] = await Promise.all([
+      prisma.inmueble.findMany({
+        where: whereConditions,
+        select: propertySelectWithImage,
+        orderBy: {
+          idInmueble: 'desc',
+        },
+        skip,
+        take,
+      }),
+      prisma.inmueble.count({ where: whereConditions }),
+    ]);
+
+    const formattedProperties = properties.map(formatPropertyWithImage);
+
+    return res.status(200).json({
+      success: true,
+      data: formattedProperties,
+      pagination: createPaginationResponse(page, take, totalCount),
+      searchParams: {
+        basedOnPreferences: true,
+        idCategoria: preferencias.idCategoria || null,
+        presupuestoMin: preferencias.presupuestoMin || null,
+        presupuestoMax: preferencias.presupuestoMax || null,
       },
     });
   } catch (error) {
@@ -700,4 +681,5 @@ module.exports = {
   getFilesByProperty,
   getMyProperties,
   searchProperties,
+  getRecommendedProperties,
 };

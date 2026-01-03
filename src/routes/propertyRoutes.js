@@ -12,6 +12,7 @@ const {
   getFilesByProperty,
   getMyProperties,
   searchProperties,
+  getRecommendedProperties,
 } = require('../controllers/propertyController');
 
 router.get('/', searchProperties);
@@ -40,5 +41,7 @@ router.delete(
   authorizeRole(['Arrendador']),
   deletePropertyImage,
 );
+
+router.get('/recommended', verifyToken, authorizeRole(['Cliente']), getRecommendedProperties);
 
 module.exports = router;
