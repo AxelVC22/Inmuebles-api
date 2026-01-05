@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const getProfile = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
 
     const user = await prisma.usuario.findUnique({
       where: { idUsuario: userId },
@@ -31,7 +31,7 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
     const data = req.body;
 
     const updateData = {
@@ -45,47 +45,73 @@ const updateProfile = async (req, res, next) => {
 
     if (data.direccion) {
       updateData.Direccion = {
-        update: {
-          calle: data.direccion.calle?.trim(),
-          noCalle: data.direccion.noCalle ? parseInt(data.direccion.noCalle) : undefined,
-          colonia: data.direccion.colonia?.trim(),
-          ciudad: data.direccion.ciudad?.trim(),
-          estado: data.direccion.estado?.trim(),
-          codigoPostal: data.direccion.codigoPostal
-            ? parseInt(data.direccion.codigoPostal)
-            : undefined,
+        upsert: {
+          create: {
+            calle: data.direccion.calle?.trim(),
+            noCalle: data.direccion.noCalle ? parseInt(data.direccion.noCalle) : 0,
+            colonia: data.direccion.colonia?.trim(),
+            ciudad: data.direccion.ciudad?.trim(),
+            estado: data.direccion.estado?.trim(),
+            codigoPostal: data.direccion.codigoPostal ? parseInt(data.direccion.codigoPostal) : 0,
+          },
+          update: {
+            calle: data.direccion.calle?.trim(),
+            noCalle: data.direccion.noCalle ? parseInt(data.direccion.noCalle) : undefined,
+            colonia: data.direccion.colonia?.trim(),
+            ciudad: data.direccion.ciudad?.trim(),
+            estado: data.direccion.estado?.trim(),
+            codigoPostal: data.direccion.codigoPostal
+              ? parseInt(data.direccion.codigoPostal)
+              : undefined,
+          },
         },
       };
     }
 
-    if (data.rfc && req.user.rol === 'Arrendador') {
+    if (data.rfc) {
       updateData.Arrendador = {
-        update: { rfc: data.rfc.trim().toUpperCase() },
+        upsert: {
+          create: { rfc: data.rfc.trim().toUpperCase() },
+          update: { rfc: data.rfc.trim().toUpperCase() },
+        },
       };
     }
 
     if (data.preferencias && req.user.rol === 'Cliente') {
       updateData.Cliente = {
-        update: {
-          Preferencias: {
-            upsert: {
+        upsert: {
+          create: {
+            Preferencias: {
               create: {
                 presupuestoMin: parseFloat(data.preferencias.presupuestoMin) || 0,
                 presupuestoMax: parseFloat(data.preferencias.presupuestoMax) || 0,
                 idCategoria: data.preferencias.idCategoria
                   ? parseInt(data.preferencias.idCategoria)
-                  : null,
+                  : undefined,
               },
-              update: {
-                presupuestoMin: data.preferencias.presupuestoMin
-                  ? parseFloat(data.preferencias.presupuestoMin)
-                  : undefined,
-                presupuestoMax: data.preferencias.presupuestoMax
-                  ? parseFloat(data.preferencias.presupuestoMax)
-                  : undefined,
-                idCategoria: data.preferencias.idCategoria
-                  ? parseInt(data.preferencias.idCategoria)
-                  : undefined,
+            },
+          },
+          update: {
+            Preferencias: {
+              upsert: {
+                create: {
+                  presupuestoMin: parseFloat(data.preferencias.presupuestoMin) || 0,
+                  presupuestoMax: parseFloat(data.preferencias.presupuestoMax) || 0,
+                  idCategoria: data.preferencias.idCategoria
+                    ? parseInt(data.preferencias.idCategoria)
+                    : undefined,
+                },
+                update: {
+                  presupuestoMin: data.preferencias.presupuestoMin
+                    ? parseFloat(data.preferencias.presupuestoMin)
+                    : undefined,
+                  presupuestoMax: data.preferencias.presupuestoMax
+                    ? parseFloat(data.preferencias.presupuestoMax)
+                    : undefined,
+                  idCategoria: data.preferencias.idCategoria
+                    ? parseInt(data.preferencias.idCategoria)
+                    : undefined,
+                },
               },
             },
           },
@@ -102,11 +128,13 @@ const updateProfile = async (req, res, next) => {
         Cliente: { include: { Preferencias: { include: { CategoriaInmueble: true } } } },
       },
     });
-
     const { hashPassword, ...userWithoutPassword } = updatedUser;
-    return res
-      .status(200)
-      .json({ success: true, message: 'Perfil actualizado', data: userWithoutPassword });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Perfil actualizado',
+      data: userWithoutPassword,
+    });
   } catch (error) {
     next(error);
   }
@@ -114,7 +142,7 @@ const updateProfile = async (req, res, next) => {
 
 const changePassword = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (newPassword !== confirmPassword) {
