@@ -88,7 +88,6 @@ CREATE TABLE Inmueble (
     superficieTotal DECIMAL(10,2) NOT NULL,
     antiguedad INT NOT NULL DEFAULT 0,
     pisoUbicacion INT NULL,
-    tipoConstruccion INT NOT NULL DEFAULT 1,
     mascotasPermitidas BIT NOT NULL DEFAULT 0,
     referencias NVARCHAR(255) NULL,
     

@@ -117,7 +117,6 @@ model Inmueble {
   superficieTotal      Decimal           @db.Decimal(10, 2)
   antiguedad           Int               @default(0, map: "DF__Inmueble__antigu__5629CD9C")
   pisoUbicacion        Int?
-  tipoConstruccion     Int               @default(1, map: "DF__Inmueble__tipoCo__571DF1D5")
   mascotasPermitidas   Boolean           @default(false, map: "DF__Inmueble__mascot__5812160E")
   referencias          String?           @db.NVarChar(255)
   idArrendador         Int
