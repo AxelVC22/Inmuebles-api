@@ -1,5 +1,4 @@
 const prisma = require('../prisma');
-const bcrypt = require('bcryptjs');
 
 const generateFakeReference = (type) => {
   const randomNum = Math.floor(100000 + Math.random() * 900000);
@@ -19,19 +18,27 @@ const generateFakeReference = (type) => {
   }
 };
 
+const formatPaymentData = (type, data) => {
+  if (!data) return 'N/A';
+  const dataStr = data.toString();
+  switch (type) {
+    case 'Tarjeta':
+    case 'Transferencia':
+      return `**** ${dataStr.slice(-4)}`;
+    default:
+      return dataStr;
+  }
+};
+
 const registerPaymentMethod = async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { tipo, datos, predeterminado } = req.body;
-    const isDefault = predeterminado;
-    const paymentData = datos;
-    const type = tipo;
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedData = await bcrypt.hash(paymentData, salt);
+    const formattedData = formatPaymentData(tipo, datos);
 
     const newMethod = await prisma.$transaction(async (tx) => {
-      if (isDefault) {
+      if (predeterminado) {
         await tx.metodoPago.updateMany({
           where: { idUsuario: userId },
           data: { predeterminado: false },
@@ -41,9 +48,9 @@ const registerPaymentMethod = async (req, res, next) => {
       return await tx.metodoPago.create({
         data: {
           idUsuario: userId,
-          tipo: type,
-          datosHasheados: hashedData,
-          predeterminado: isDefault || false,
+          tipo: tipo,
+          datosHasheados: formattedData,
+          predeterminado: predeterminado || false,
         },
       });
     });
@@ -53,7 +60,8 @@ const registerPaymentMethod = async (req, res, next) => {
       data: {
         idMetodo: newMethod.idMetodo,
         tipo: newMethod.tipo,
-        mascara: `**** ${paymentData.slice(-4)}`,
+        detalle: newMethod.datosHasheados,
+        predeterminado: newMethod.predeterminado,
       },
     });
   } catch (error) {
@@ -71,11 +79,19 @@ const getPaymentMethods = async (req, res, next) => {
         idMetodo: true,
         tipo: true,
         predeterminado: true,
+        datosHasheados: true,
       },
     });
 
+    const responseData = methods.map((m) => ({
+      idMetodo: m.idMetodo,
+      tipo: m.tipo,
+      detalle: m.datosHasheados,
+      predeterminado: m.predeterminado,
+    }));
+
     res.status(200).json({
-      data: methods,
+      data: responseData,
     });
   } catch (error) {
     next(error);
@@ -120,7 +136,8 @@ const registerPayment = async (req, res, next) => {
         estado: newPayment.estado,
         referencia: newPayment.referenciaPasarela,
         fecha: newPayment.fecha,
-        metodo: method.tipo,
+        tipo: method.tipo,
+        detalle: method.datosHasheados,
       },
     });
   } catch (error) {
