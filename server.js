@@ -35,8 +35,6 @@ app.use('/api/catalogs', require('./src/routes/catalogRoutes'));
 app.use('/api/interactions', require('./src/routes/interactionRoutes'));
 app.use('/api/payments', require('./src/routes/paymentRoutes'));
 app.use('/api/users', require('./src/routes/preferencesRoutes'));
-app.use('/api/profile', require('./src/routes/profileRoutes'));
-app.use('/api/payments', require('./src/routes/paymentRoutes'));
 app.use('/api/properties', require('./src/routes/propertyRoutes'));
 app.use('/api/accounts', require('./src/routes/accountRoutes'));
 

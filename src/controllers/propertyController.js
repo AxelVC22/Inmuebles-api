@@ -11,9 +11,14 @@ const {
 const getPropertyById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const propertyId = parseInt(id);
+
+    if (isNaN(propertyId)) {
+      return res.status(400).json({ success: false, message: 'ID inválido' });
+    }
 
     const property = await prisma.inmueble.findUnique({
-      where: { idInmueble: parseInt(id) },
+      where: { idInmueble: propertyId },
       include: {
         Direccion: true,
         Publicacion: true,
@@ -25,19 +30,44 @@ const getPropertyById = async (req, res, next) => {
             CategoriaInmueble: true,
           },
         },
+        Archivo: {
+          where: { visible: true },
+          orderBy: { idArchivo: 'asc' },
+          select: {
+            idArchivo: true,
+            datos: true,
+            nombreOriginal: true,
+            tipo: true,
+            extension: true,
+          },
+        },
       },
     });
 
     if (!property) {
-      return res.status(404).json({
-        success: false,
-        message: 'Propiedad no encontrada',
-      });
+      return res.status(404).json({ success: false, message: 'Propiedad no encontrada' });
     }
+
+    const images = property.Archivo.map((archivo) => {
+      const base64String = archivo.datos.toString('base64');
+      return {
+        id: archivo.idArchivo,
+        nombre: archivo.nombreOriginal,
+        extension: archivo.extension,
+        url: `data:${archivo.tipo};base64,${base64String}`,
+      };
+    });
+
+    const propertyResponse = {
+      ...property,
+      imagenes: images,
+      imagen: images.length > 0 ? images[0] : null,
+      Archivo: undefined,
+    };
 
     return res.status(200).json({
       success: true,
-      data: property,
+      data: propertyResponse,
     });
   } catch (error) {
     next(error);
@@ -47,74 +77,53 @@ const getPropertyById = async (req, res, next) => {
 const createProperty = async (req, res, next) => {
   try {
     const data = req.body;
-
-    const validationErrors = validatePropertyData(data);
-    if (validationErrors.length > 0) {
-      return res.status(400).json({
-        message: 'Errores de validación',
-        errors: validationErrors,
-      });
-    }
-
-    const usuario = await prisma.usuario.findUnique({
-      where: { idUsuario: data.arrendadorId },
-      include: {
-        Arrendador: true,
-      },
+    const userId = req.user.id;
+    const arrendador = await prisma.arrendador.findUnique({
+      where: { idUsuario: parseInt(userId) },
     });
 
-    if (!usuario) {
-      return res.status(404).json({
+    if (!arrendador) {
+      return res.status(403).json({
         success: false,
-        message: 'Usuario no encontrado',
+        message: 'El usuario no tiene un perfil de Arrendador activo.',
       });
     }
 
-    const subtipo = await prisma.subtipoInmueble.findUnique({
-      where: { idSubtipo: data.subtipoId },
-    });
-
-    if (!subtipo) {
-      return res.status(404).json({
-        success: false,
-        message: 'Subtipo de inmueble no encontrado',
-      });
-    }
-
-    const isSaleOperation = data.publicacion.tipoOperacion === 'Venta';
-    const salePrice = isSaleOperation ? data.publicacion.precio : null;
-    const rentPrice = !isSaleOperation ? data.publicacion.precio : null;
+    const isSale = data.publicacion.tipoOperacion === 'Venta';
+    const precio = parseFloat(data.publicacion.precio);
 
     const result = await prisma.inmueble.create({
       data: {
         titulo: data.titulo.trim(),
         descripcion: data.descripcion.trim(),
-        numRecamaras: data.detallesFisicos.numRecamaras,
-        numBa_os: data.detallesFisicos.numBaños,
-        numMediosBa_os: data.detallesFisicos.numMediosBaños,
-        superficieTotal: data.detallesFisicos.superficieTotal,
-        superficieConstruida: data.detallesFisicos.superficieConstruida,
-        mascotasPermitidas: data.detallesFisicos.mascotasPermitidas,
-        numPisos: data.detallesFisicos.numPisos || 1,
-        antiguedad: data.detallesFisicos.antiguedad || 0,
-        pisoUbicacion: data.detallesFisicos.pisoUbicacion || null,
         referencias: data.referencias ? data.referencias.trim() : null,
+        numRecamaras: parseInt(data.detallesFisicos.numRecamaras),
+        numBa_os: parseFloat(data.detallesFisicos.numBaños),
+        numMediosBa_os: parseInt(data.detallesFisicos.numMediosBaños || 0),
+        superficieConstruida: parseFloat(data.detallesFisicos.superficieConstruida),
+        superficieTotal: parseFloat(data.detallesFisicos.superficieTotal),
+        antiguedad: parseInt(data.detallesFisicos.antiguedad || 0),
+        numPisos: parseInt(data.detallesFisicos.numPisos || 1),
+        pisoUbicacion: data.detallesFisicos.pisoUbicacion
+          ? parseInt(data.detallesFisicos.pisoUbicacion)
+          : 0,
+        mascotasPermitidas: data.detallesFisicos.mascotasPermitidas,
 
         Arrendador: {
-          connect: { idUsuario: data.arrendadorId },
+          connect: { idUsuario: arrendador.idUsuario },
         },
         SubtipoInmueble: {
-          connect: { idSubtipo: data.subtipoId },
+          connect: { idSubtipo: parseInt(data.subtipoId) },
         },
 
         Direccion: {
           create: {
             calle: data.direccion.calle.trim(),
-            noCalle: data.direccion.noCalle,
+            noCalle: parseInt(data.direccion.noCalle),
             colonia: data.direccion.colonia.trim(),
             ciudad: data.direccion.ciudad.trim(),
             estado: data.direccion.estado.trim(),
-            codigoPostal: data.direccion.codigoPostal,
+            codigoPostal: parseInt(data.direccion.codigoPostal),
           },
         },
 
@@ -145,8 +154,8 @@ const createProperty = async (req, res, next) => {
 
         Geolocalizacion: {
           create: {
-            latitud: data.geolocalizacion.latitud,
-            longitud: data.geolocalizacion.longitud,
+            latitud: parseFloat(data.geolocalizacion.latitud),
+            longitud: parseFloat(data.geolocalizacion.longitud),
           },
         },
 
@@ -155,18 +164,22 @@ const createProperty = async (req, res, next) => {
             tipoOperacion: data.publicacion.tipoOperacion,
             estado: 'Publicada',
             divisa: data.publicacion.divisa || 'MXN',
-            precioVenta: salePrice,
-            precioRentaMensual: rentPrice,
-
+            precioVenta: isSale ? precio : null,
+            precioRentaMensual: !isSale ? precio : null,
             requiereAval: data.publicacion.requiereAval || false,
             depositoRequerido: data.publicacion.depositoRequerido || false,
-            montoDeposito: data.publicacion.montoDeposito || null,
-
-            plazoMinimoMeses: data.publicacion.plazoMinimoMeses || null,
-            plazoMaximoMeses: data.publicacion.plazoMaximoMeses || null,
+            montoDeposito: data.publicacion.montoDeposito
+              ? parseFloat(data.publicacion.montoDeposito)
+              : null,
+            plazoMinimoMeses: data.publicacion.plazoMinimoMeses
+              ? parseInt(data.publicacion.plazoMinimoMeses)
+              : null,
+            plazoMaximoMeses: data.publicacion.plazoMaximoMeses
+              ? parseInt(data.publicacion.plazoMaximoMeses)
+              : null,
             precioPorM2:
-              isSaleOperation && data.detallesFisicos.superficieTotal > 0
-                ? data.publicacion.precio / data.detallesFisicos.superficieTotal
+              isSale && parseFloat(data.detallesFisicos.superficieTotal) > 0
+                ? precio / parseFloat(data.detallesFisicos.superficieTotal)
                 : null,
           },
         },
@@ -174,27 +187,14 @@ const createProperty = async (req, res, next) => {
         HistorialEstado: {
           create: {
             estado: 'Disponible',
-            motivoCambio: 'Registro inicial',
+            motivoCambio: 'Creación de propiedad',
           },
         },
-      },
-
-      include: {
-        Direccion: true,
-        Publicacion: true,
-        Amenidades: true,
-        Geolocalizacion: true,
-        Servicios: true,
-        SubtipoInmueble: {
-          include: {
-            CategoriaInmueble: true,
-          },
-        },
-        HistorialEstado: true,
       },
     });
 
     return res.status(201).json({
+      success: true,
       message: 'Propiedad creada exitosamente',
       propertyId: result.idInmueble,
       data: result,
@@ -591,7 +591,7 @@ const searchProperties = async (req, res, next) => {
 
 const getRecommendedProperties = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
     const { page = 1, limit = 20 } = req.query;
 
     const preferencias = await prisma.preferencias.findUnique({
