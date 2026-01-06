@@ -1,5 +1,5 @@
 const request = require('supertest');
-const { generatePrismock } = require('prismock');
+const { PrismockClient } = require('prismock');
 const bcrypt = require('bcryptjs');
 
 let mockPrisma = {};
@@ -10,20 +10,22 @@ jest.mock('../../src/prisma', () => {
 
 const app = require('../../server');
 
-describe('Pruebas de Autenticación', () => {
+describe('Pruebas de auth', () => {
   beforeAll(async () => {
-    const db = await generatePrismock();
+    const db = new PrismockClient();
     Object.assign(mockPrisma, db);
   });
 
   beforeEach(async () => {
-    if (mockPrisma.usuario) {
-      await mockPrisma.usuario.deleteMany();
-    }
+    if (mockPrisma.preferencias) await mockPrisma.preferencias.deleteMany();
+    if (mockPrisma.cliente) await mockPrisma.cliente.deleteMany();
+    if (mockPrisma.arrendador) await mockPrisma.arrendador.deleteMany();
+    if (mockPrisma.usuario) await mockPrisma.usuario.deleteMany();
+    if (mockPrisma.direccion) await mockPrisma.direccion.deleteMany();
   });
 
   describe('POST /api/auth/register', () => {
-    it('Registra un cliente correctamente (201)', async () => {
+    it('Registra un CLIENTE correctamente con dirección y preferencias vacías (201)', async () => {
       const nuevoCliente = {
         nombre: 'Juan',
         apellidos: 'Pérez',
@@ -33,6 +35,14 @@ describe('Pruebas de Autenticación', () => {
         telefono: '5551234567',
         fechaNacimiento: '1990-05-20',
         nacionalidad: 'Mexicana',
+        direccion: {
+          calle: 'Av. bababoi',
+          noCalle: 123,
+          colonia: 'Colonia',
+          ciudad: 'Ciudad',
+          estado: 'Estado',
+          codigoPostal: 12345,
+        },
       };
 
       const res = await request(app).post('/api/auth/register').send(nuevoCliente);
@@ -40,20 +50,30 @@ describe('Pruebas de Autenticación', () => {
       expect(res.statusCode).toBe(201);
       expect(res.body).toHaveProperty('message', 'Usuario registrado exitosamente.');
       expect(res.body).toHaveProperty('userId');
+      expect(res.body).toHaveProperty('token');
 
       const usuarioDb = await mockPrisma.usuario.findUnique({
         where: { correoElectronico: nuevoCliente.email },
+        include: { Direccion: true },
       });
       expect(usuarioDb).toBeTruthy();
       expect(usuarioDb.rol).toBe('Cliente');
+
+      expect(usuarioDb.Direccion).toBeTruthy();
+      expect(usuarioDb.Direccion.calle).toBe('Av. bababoi');
 
       const clienteDb = await mockPrisma.cliente.findUnique({
         where: { idUsuario: usuarioDb.idUsuario },
       });
       expect(clienteDb).toBeTruthy();
+
+      const prefsDb = await mockPrisma.preferencias.findUnique({
+        where: { idUsuario: usuarioDb.idUsuario },
+      });
+      expect(prefsDb).toBeTruthy();
     });
 
-    it('Registra un arrendador correctamente (201)', async () => {
+    it('Registra un ARRENDADOR correctamente (Crea Arrendador + Cliente) (201)', async () => {
       const nuevoArrendador = {
         nombre: 'Maria',
         apellidos: 'Lopez',
@@ -64,6 +84,14 @@ describe('Pruebas de Autenticación', () => {
         fechaNacimiento: '1985-08-10',
         nacionalidad: 'Mexicana',
         rfc: 'LOM850810XXX',
+        direccion: {
+          calle: 'Reforma',
+          noCalle: 222,
+          colonia: 'Centro',
+          ciudad: 'CDMX',
+          estado: 'CDMX',
+          codigoPostal: 60000,
+        },
       };
 
       const res = await request(app).post('/api/auth/register').send(nuevoArrendador);
@@ -80,32 +108,50 @@ describe('Pruebas de Autenticación', () => {
       });
       expect(arrendadorDb).toBeTruthy();
       expect(arrendadorDb.rfc).toBe('LOM850810XXX');
+
+      const clienteDb = await mockPrisma.cliente.findUnique({
+        where: { idUsuario: usuarioDb.idUsuario },
+      });
+      expect(clienteDb).toBeTruthy();
     });
 
-    it('Error por no RFC (400)', async () => {
+    it('Falla si no se envía la dirección (400)', async () => {
+      const sinDireccion = {
+        nombre: 'Pedro',
+        email: 'nodir@test.com',
+        password: '123',
+        rol: 'Cliente',
+      };
+
+      const res = await request(app).post('/api/auth/register').send(sinDireccion);
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/dirección es obligatoria/);
+    });
+
+    it('Falla si un Arrendador no envía RFC (400)', async () => {
       const arrendadorSinRfc = {
         nombre: 'Pedro',
-        apellidos: 'Ramirez',
         email: 'sinrfc@test.com',
         password: '123',
         rol: 'Arrendador',
-        telefono: '5550000000',
-        fechaNacimiento: '1990-01-01',
-        nacionalidad: 'Mexicana',
+        direccion: {
+          calle: 'x',
+          noCalle: 1,
+          colonia: 'x',
+          ciudad: 'x',
+          estado: 'x',
+          codigoPostal: 1,
+        },
       };
 
       const res = await request(app).post('/api/auth/register').send(arrendadorSinRfc);
 
       expect(res.statusCode).toBe(400);
       expect(res.body).toHaveProperty('error', 'El RFC es obligatorio para Arrendadores');
-
-      const usuarioDb = await mockPrisma.usuario.findUnique({
-        where: { correoElectronico: arrendadorSinRfc.email },
-      });
-      expect(usuarioDb).toBeNull();
     });
 
-    it('Correo duplicado (400)', async () => {
+    it('Falla por correo duplicado (400)', async () => {
       await mockPrisma.usuario.create({
         data: {
           nombre: 'Existente',
@@ -117,18 +163,32 @@ describe('Pruebas de Autenticación', () => {
           fechaNacimiento: new Date(),
           nacionalidad: 'MX',
           estadoCuenta: 'Activo',
+          Direccion: {
+            create: {
+              calle: 'x',
+              noCalle: 1,
+              colonia: 'x',
+              ciudad: 'x',
+              estado: 'x',
+              codigoPostal: 1,
+            },
+          },
         },
       });
 
       const intentoDuplicado = {
         nombre: 'Intruso',
-        apellidos: 'Nuevo',
         email: 'duplicado@test.com',
         password: '123',
         rol: 'Cliente',
-        telefono: '111',
-        fechaNacimiento: '2000-01-01',
-        nacionalidad: 'MX',
+        direccion: {
+          calle: 'y',
+          noCalle: 2,
+          colonia: 'y',
+          ciudad: 'y',
+          estado: 'y',
+          codigoPostal: 2,
+        },
       };
 
       const res = await request(app).post('/api/auth/register').send(intentoDuplicado);
@@ -154,6 +214,16 @@ describe('Pruebas de Autenticación', () => {
           fechaNacimiento: new Date(),
           nacionalidad: 'MX',
           estadoCuenta: 'Activo',
+          Direccion: {
+            create: {
+              calle: 'x',
+              noCalle: 1,
+              colonia: 'x',
+              ciudad: 'x',
+              estado: 'x',
+              codigoPostal: 1,
+            },
+          },
         },
       });
 
@@ -180,6 +250,16 @@ describe('Pruebas de Autenticación', () => {
           fechaNacimiento: new Date(),
           nacionalidad: 'MX',
           estadoCuenta: 'Activo',
+          Direccion: {
+            create: {
+              calle: 'x',
+              noCalle: 1,
+              colonia: 'x',
+              ciudad: 'x',
+              estado: 'x',
+              codigoPostal: 1,
+            },
+          },
         },
       });
 

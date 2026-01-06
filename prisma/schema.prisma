@@ -4,13 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlserver"
-  url = env("DATABASE_URL")
-}
-
-model Administrador {
-  idUsuario   Int     @id(map: "PK__Administ__645723A6671E6A70")
-  nivelAcceso String  @default("Standard", map: "DF__Administr__nivel__440B1D61") @db.NVarChar(50)
-  Usuario     Usuario @relation(fields: [idUsuario], references: [idUsuario], onUpdate: NoAction, map: "FK__Administr__idUsu__44FF419A")
+  url      = env("DATABASE_URL")
 }
 
 model Amenidades {
@@ -32,7 +26,7 @@ model Archivo {
   nombreOriginal String?   @db.NVarChar(100)
   extension      String    @db.NVarChar(10)
   tipo           String    @db.NVarChar(50)
-  fechaCarga     DateTime  @default(now(), map: "DF__Archivo__fechaCa__5DCAEF64") @db.DateTime
+  fechaCarga     DateTime  @default(now(), map: "DF__Archivo__fechaCa__59FA5E80") @db.DateTime
   visible        Boolean   @default(true, map: "DF__Archivo__visible__5EBF139D")
   idInmueble     Int?
   idUsuario      Int?
@@ -100,7 +94,7 @@ model HistorialEstado {
   idHistorial  Int      @id(map: "PK__Historia__4712FB334C599521") @default(autoincrement())
   idInmueble   Int
   estado       String   @db.NVarChar(50)
-  fechaCambio  DateTime @default(now(), map: "DF__Historial__fecha__7E37BEF6") @db.DateTime
+  fechaCambio  DateTime @default(now(), map: "DF__Historial__fecha__7A672E12") @db.DateTime
   motivoCambio String?  @db.NVarChar(255)
   Inmueble     Inmueble @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Historial__idInm__7F2BE32F")
 }
@@ -117,7 +111,6 @@ model Inmueble {
   superficieTotal      Decimal           @db.Decimal(10, 2)
   antiguedad           Int               @default(0, map: "DF__Inmueble__antigu__5629CD9C")
   pisoUbicacion        Int?
-  tipoConstruccion     Int               @default(1, map: "DF__Inmueble__tipoCo__571DF1D5")
   mascotasPermitidas   Boolean           @default(false, map: "DF__Inmueble__mascot__5812160E")
   referencias          String?           @db.NVarChar(255)
   idArrendador         Int
@@ -139,7 +132,7 @@ model Interaccion {
   idInteraccion Int         @id(map: "PK__Interacc__E973603D3A1ED683") @default(autoincrement())
   idCliente     Int
   idPublicacion Int
-  fecha         DateTime    @default(now(), map: "DF__Interacci__fecha__10566F31") @db.DateTime
+  fecha         DateTime    @default(now(), map: "DF__Interacci__fecha__0C85DE4D") @db.DateTime
   mensaje       String?     @db.NVarChar(Max)
   tipo          String      @db.NVarChar(50)
   Cliente       Cliente     @relation(fields: [idCliente], references: [idUsuario], onUpdate: NoAction, map: "FK__Interacci__idCli__114A936A")
@@ -160,7 +153,7 @@ model Pago {
   idPago             Int        @id(map: "PK__Pago__BD2295AD1469A5E0") @default(autoincrement())
   idMetodo           Int
   monto              Decimal    @db.Decimal(18, 2)
-  fecha              DateTime   @default(now(), map: "DF__Pago__fecha__1DB06A4F") @db.DateTime
+  fecha              DateTime   @default(now(), map: "DF__Pago__fecha__19DFD96B") @db.DateTime
   estado             String     @db.NVarChar(20)
   referenciaPasarela String     @db.NVarChar(100)
   MetodoPago         MetodoPago @relation(fields: [idMetodo], references: [idMetodo], onUpdate: NoAction, map: "FK__Pago__idMetodo__1EA48E88")
@@ -190,7 +183,7 @@ model Publicacion {
   plazoMinimoMeses   Int?
   plazoMaximoMeses   Int?
   tipoOperacion      String        @db.NVarChar(20)
-  fechaInicio        DateTime      @default(now(), map: "DF__Publicaci__fecha__06CD04F7") @db.DateTime
+  fechaInicio        DateTime      @default(now(), map: "DF__Publicaci__fecha__02FC7413") @db.DateTime
   Comision           Comision[]
   Interaccion        Interaccion[]
   Inmueble           Inmueble      @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Publicaci__idInm__07C12930")
@@ -248,4 +241,10 @@ model Visita {
   estado          String   @default("Programada", map: "DF__Visita__estado__151B244E") @db.NVarChar(20)
   Cliente         Cliente  @relation(fields: [idCliente], references: [idUsuario], onUpdate: NoAction, map: "FK__Visita__idClient__17036CC0")
   Inmueble        Inmueble @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Visita__idInmueb__160F4887")
+}
+
+model Administrador {
+  idUsuario   Int     @id(map: "PK__Administ__645723A6671E6A70")
+  nivelAcceso String  @default("Standard", map: "DF__Administr__nivel__440B1D61") @db.NVarChar(50)
+  Usuario     Usuario @relation(fields: [idUsuario], references: [idUsuario], onUpdate: NoAction, map: "FK__Administr__idUsu__44FF419A")
 }

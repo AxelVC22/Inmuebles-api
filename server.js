@@ -5,7 +5,7 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.SERVER_PORT || 3000;
+const port = process.env.SERVER_PORT;
 app.disable('x-powered-by');
 const isProduction = process.env.NODE_ENV === 'production';
 
@@ -32,9 +32,11 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/catalogs', require('./src/routes/catalogRoutes'));
-app.use('/api/users', require('./src/routes/preferencesRoutes'));
-app.use('/api/profile', require('./src/routes/profileRoutes'));
+app.use('/api/interactions', require('./src/routes/interactionRoutes'));
 app.use('/api/payments', require('./src/routes/paymentRoutes'));
+app.use('/api/users', require('./src/routes/preferencesRoutes'));
+app.use('/api/properties', require('./src/routes/propertyRoutes'));
+app.use('/api/accounts', require('./src/routes/accountRoutes'));
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
