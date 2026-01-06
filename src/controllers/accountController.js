@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 
 const getProfile = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
 
     const user = await prisma.usuario.findUnique({
       where: { idUsuario: userId },
@@ -31,7 +31,7 @@ const getProfile = async (req, res, next) => {
 
 const updateProfile = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
     const data = req.body;
 
     const updateData = {
@@ -58,13 +58,16 @@ const updateProfile = async (req, res, next) => {
       };
     }
 
-    if (data.rfc && req.user.rol === 'Arrendador') {
+    if (data.rfc) {
       updateData.Arrendador = {
-        update: { rfc: data.rfc.trim().toUpperCase() },
+        upsert: {
+          create: { rfc: data.rfc.trim().toUpperCase() },
+          update: { rfc: data.rfc.trim().toUpperCase() },
+        },
       };
     }
 
-    if (data.preferencias && req.user.rol === 'Cliente') {
+    if (data.preferencias) {
       updateData.Cliente = {
         update: {
           Preferencias: {
@@ -114,7 +117,7 @@ const updateProfile = async (req, res, next) => {
 
 const changePassword = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
     const { currentPassword, newPassword, confirmPassword } = req.body;
 
     if (newPassword !== confirmPassword) {

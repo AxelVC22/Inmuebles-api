@@ -8,26 +8,26 @@ datasource db {
 }
 
 model Amenidades {
-  idAmenidad      Int      @id(map: "PK__Amenidad__C0646E1A873EF139") @default(autoincrement())
-  idInmueble      Int      @unique(map: "UQ__Amenidad__2E07DFFE7D9E6E5B")
-  balconTerraza   Boolean  @default(false, map: "DF__Amenidade__balco__619B8048")
-  bodega          Boolean  @default(false, map: "DF__Amenidade__bodeg__628FA481")
-  chimenea        Boolean  @default(false, map: "DF__Amenidade__chime__6383C8BA")
-  estacionamiento Boolean  @default(false, map: "DF__Amenidade__estac__6477ECF3")
-  jacuzzi         Boolean  @default(false, map: "DF__Amenidade__jacuz__656C112C")
-  jardin          Boolean  @default(false, map: "DF__Amenidade__jardi__66603565")
-  alberca         Boolean  @default(false, map: "DF__Amenidade__alber__6754599E")
+  idAmenidad      Int      @id(map: "PK__Amenidad__C0646E1AF0CF7EF2") @default(autoincrement())
+  idInmueble      Int      @unique(map: "UQ__Amenidad__2E07DFFE8336B3BD")
+  balconTerraza   Boolean  @default(false, map: "DF__Amenidade__balco__656C112C")
+  bodega          Boolean  @default(false, map: "DF__Amenidade__bodeg__66603565")
+  chimenea        Boolean  @default(false, map: "DF__Amenidade__chime__6754599E")
+  estacionamiento Boolean  @default(false, map: "DF__Amenidade__estac__68487DD7")
+  jacuzzi         Boolean  @default(false, map: "DF__Amenidade__jacuz__693CA210")
+  jardin          Boolean  @default(false, map: "DF__Amenidade__jardi__6A30C649")
+  alberca         Boolean  @default(false, map: "DF__Amenidade__alber__6B24EA82")
   Inmueble        Inmueble @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Amenidade__idInm__6C190EBB")
 }
 
 model Archivo {
-  idArchivo      Int       @id(map: "PK__Archivo__DF161F50CB4E8277") @default(autoincrement())
+  idArchivo      Int       @id(map: "PK__Archivo__DF161F50129C5B27") @default(autoincrement())
   datos          Bytes
   nombreOriginal String?   @db.NVarChar(100)
   extension      String    @db.NVarChar(10)
   tipo           String    @db.NVarChar(50)
   fechaCarga     DateTime  @default(now(), map: "DF__Archivo__fechaCa__59FA5E80") @db.DateTime
-  visible        Boolean   @default(true, map: "DF__Archivo__visible__5AEE82B9")
+  visible        Boolean   @default(true, map: "DF__Archivo__visible__5EBF139D")
   idInmueble     Int?
   idUsuario      Int?
   Inmueble       Inmueble? @relation(fields: [idInmueble], references: [idInmueble], onDelete: NoAction, onUpdate: NoAction, map: "FK__Archivo__idInmue__5FB337D6")
@@ -35,7 +35,7 @@ model Archivo {
 }
 
 model Arrendador {
-  idUsuario Int        @id(map: "PK__Arrendad__645723A6C92D30D5")
+  idUsuario Int        @id(map: "PK__Arrendad__645723A6660FF990")
   rfc       String     @db.NVarChar(20)
   Usuario   Usuario    @relation(fields: [idUsuario], references: [idUsuario], onUpdate: NoAction, map: "FK__Arrendado__idUsu__47DBAE45")
   Comision  Comision[]
@@ -43,14 +43,14 @@ model Arrendador {
 }
 
 model CategoriaInmueble {
-  idCategoria     Int               @id(map: "PK__Categori__8A3D240C46EBA4F2") @default(autoincrement())
+  idCategoria     Int               @id(map: "PK__Categori__8A3D240C866791D2") @default(autoincrement())
   nombre          String            @db.NVarChar(50)
   Preferencias    Preferencias[]
   SubtipoInmueble SubtipoInmueble[]
 }
 
 model Cliente {
-  idUsuario    Int           @id(map: "PK__Cliente__645723A6FA112922")
+  idUsuario    Int           @id(map: "PK__Cliente__645723A6B6C9EE99")
   Usuario      Usuario       @relation(fields: [idUsuario], references: [idUsuario], onUpdate: NoAction, map: "FK__Cliente__idUsuar__4AB81AF0")
   Interaccion  Interaccion[]
   Preferencias Preferencias?
@@ -58,20 +58,20 @@ model Cliente {
 }
 
 model Comision {
-  idComision     Int         @id(map: "PK__Comision__12A3EDC28F9C93D9") @default(autoincrement())
+  idComision     Int         @id(map: "PK__Comision__12A3EDC2047C930F") @default(autoincrement())
   idArrendador   Int
   idPublicacion  Int
-  diasPublicados Int         @default(0, map: "DF__Comision__diasPu__06CD04F7")
+  diasPublicados Int         @default(0, map: "DF__Comision__diasPu__0A9D95DB")
   tarifaDiaria   Decimal     @db.Decimal(18, 2)
   montoTotal     Decimal?    @db.Decimal(29, 2)
   fechaCorte     DateTime?   @db.DateTime
-  estadoPago     String      @default("Pendiente", map: "DF__Comision__estado__07C12930") @db.NVarChar(20)
+  estadoPago     String      @default("Pendiente", map: "DF__Comision__estado__0B91BA14") @db.NVarChar(20)
   Arrendador     Arrendador  @relation(fields: [idArrendador], references: [idUsuario], onUpdate: NoAction, map: "FK__Comision__idArre__0C85DE4D")
   Publicacion    Publicacion @relation(fields: [idPublicacion], references: [idPublicacion], onUpdate: NoAction, map: "FK__Comision__idPubl__0D7A0286")
 }
 
 model Direccion {
-  idDireccion  Int        @id(map: "PK__Direccio__B49878C94366111D") @default(autoincrement())
+  idDireccion  Int        @id(map: "PK__Direccio__B49878C993DA370D") @default(autoincrement())
   calle        String     @db.NVarChar(100)
   noCalle      Int
   colonia      String     @db.NVarChar(100)
@@ -83,15 +83,15 @@ model Direccion {
 }
 
 model Geolocalizacion {
-  idGeo      Int      @id(map: "PK__Geolocal__3EB60406DF45B281") @default(autoincrement())
-  idInmueble Int      @unique(map: "UQ__Geolocal__2E07DFFE588BC8D6")
+  idGeo      Int      @id(map: "PK__Geolocal__3EB60406139397BC") @default(autoincrement())
+  idInmueble Int      @unique(map: "UQ__Geolocal__2E07DFFE94363067")
   latitud    Decimal  @db.Decimal(9, 6)
   longitud   Decimal  @db.Decimal(9, 6)
   Inmueble   Inmueble @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Geolocali__idInm__7B5B524B")
 }
 
 model HistorialEstado {
-  idHistorial  Int      @id(map: "PK__Historia__4712FB33353FAC39") @default(autoincrement())
+  idHistorial  Int      @id(map: "PK__Historia__4712FB334C599521") @default(autoincrement())
   idInmueble   Int
   estado       String   @db.NVarChar(50)
   fechaCambio  DateTime @default(now(), map: "DF__Historial__fecha__7A672E12") @db.DateTime
@@ -100,18 +100,18 @@ model HistorialEstado {
 }
 
 model Inmueble {
-  idInmueble           Int               @id(map: "PK__Inmueble__2E07DFFF3F705A69") @default(autoincrement())
+  idInmueble           Int               @id(map: "PK__Inmueble__2E07DFFF0C638210") @default(autoincrement())
   titulo               String            @db.NVarChar(100)
   descripcion          String            @db.NVarChar(Max)
-  numBa_os             Int               @default(0, map: "DF__Inmueble__numBañ__4E88ABD4") @map("numBaños")
-  numMediosBa_os       Int               @default(0, map: "DF__Inmueble__numMed__4F7CD00D") @map("numMediosBaños")
-  numPisos             Int               @default(1, map: "DF__Inmueble__numPis__5070F446")
-  numRecamaras         Int               @default(0, map: "DF__Inmueble__numRec__5165187F")
+  numBa_os             Int               @default(0, map: "DF__Inmueble__numBañ__52593CB8") @map("numBaños")
+  numMediosBa_os       Int               @default(0, map: "DF__Inmueble__numMed__534D60F1") @map("numMediosBaños")
+  numPisos             Int               @default(1, map: "DF__Inmueble__numPis__5441852A")
+  numRecamaras         Int               @default(0, map: "DF__Inmueble__numRec__5535A963")
   superficieConstruida Decimal           @db.Decimal(10, 2)
   superficieTotal      Decimal           @db.Decimal(10, 2)
-  antiguedad           Int               @default(0, map: "DF__Inmueble__antigu__52593CB8")
+  antiguedad           Int               @default(0, map: "DF__Inmueble__antigu__5629CD9C")
   pisoUbicacion        Int?
-  mascotasPermitidas   Boolean           @default(false, map: "DF__Inmueble__mascot__5441852A")
+  mascotasPermitidas   Boolean           @default(false, map: "DF__Inmueble__mascot__5812160E")
   referencias          String?           @db.NVarChar(255)
   idArrendador         Int
   idDireccion          Int
@@ -129,7 +129,7 @@ model Inmueble {
 }
 
 model Interaccion {
-  idInteraccion Int         @id(map: "PK__Interacc__E973603D722691F7") @default(autoincrement())
+  idInteraccion Int         @id(map: "PK__Interacc__E973603D3A1ED683") @default(autoincrement())
   idCliente     Int
   idPublicacion Int
   fecha         DateTime    @default(now(), map: "DF__Interacci__fecha__0C85DE4D") @db.DateTime
@@ -140,17 +140,17 @@ model Interaccion {
 }
 
 model MetodoPago {
-  idMetodo       Int     @id(map: "PK__MetodoPa__E123E7E61467E6A2") @default(autoincrement())
+  idMetodo       Int     @id(map: "PK__MetodoPa__E123E7E61FDF6A9C") @default(autoincrement())
   idUsuario      Int
   tipo           String  @db.NVarChar(50)
-  predeterminado Boolean @default(false, map: "DF__MetodoPag__prede__160F4887")
+  predeterminado Boolean @default(false, map: "DF__MetodoPag__prede__19DFD96B")
   datosHasheados String  @db.NVarChar(255)
   Usuario        Usuario @relation(fields: [idUsuario], references: [idUsuario], onUpdate: NoAction, map: "FK__MetodoPag__idUsu__1AD3FDA4")
   Pago           Pago[]
 }
 
 model Pago {
-  idPago             Int        @id(map: "PK__Pago__BD2295AD7514BFD9") @default(autoincrement())
+  idPago             Int        @id(map: "PK__Pago__BD2295AD1469A5E0") @default(autoincrement())
   idMetodo           Int
   monto              Decimal    @db.Decimal(18, 2)
   fecha              DateTime   @default(now(), map: "DF__Pago__fecha__19DFD96B") @db.DateTime
@@ -160,8 +160,8 @@ model Pago {
 }
 
 model Preferencias {
-  idPreferencia     Int                @id(map: "PK__Preferen__6C57E31778B38CD3") @default(autoincrement())
-  idUsuario         Int                @unique(map: "UQ__Preferen__645723A73843D2B4")
+  idPreferencia     Int                @id(map: "PK__Preferen__6C57E31764459A11") @default(autoincrement())
+  idUsuario         Int                @unique(map: "UQ__Preferen__645723A7710D8367")
   presupuestoMin    Decimal?           @db.Decimal(18, 2)
   presupuestoMax    Decimal?           @db.Decimal(18, 2)
   idCategoria       Int?
@@ -170,16 +170,16 @@ model Preferencias {
 }
 
 model Publicacion {
-  idPublicacion      Int           @id(map: "PK__Publicac__BF9D98903EA846A4") @default(autoincrement())
-  idInmueble         Int           @unique(map: "UQ__Publicac__2E07DFFEFBDEE366")
-  estado             String        @default("Publicada", map: "DF__Publicaci__estad__7F2BE32F") @db.NVarChar(50)
+  idPublicacion      Int           @id(map: "PK__Publicac__BF9D9890CE301148") @default(autoincrement())
+  idInmueble         Int           @unique(map: "UQ__Publicac__2E07DFFE82E98AE0")
+  estado             String        @default("Publicada", map: "DF__Publicaci__estad__02FC7413") @db.NVarChar(50)
   precioVenta        Decimal?      @db.Decimal(18, 2)
   precioRentaMensual Decimal?      @db.Decimal(18, 2)
-  divisa             String        @default("MXN", map: "DF__Publicaci__divis__00200768") @db.NVarChar(3)
+  divisa             String        @default("MXN", map: "DF__Publicaci__divis__03F0984C") @db.NVarChar(3)
   precioPorM2        Decimal?      @db.Decimal(18, 2)
-  depositoRequerido  Boolean       @default(false, map: "DF__Publicaci__depos__01142BA1")
+  depositoRequerido  Boolean       @default(false, map: "DF__Publicaci__depos__04E4BC85")
   montoDeposito      Decimal?      @db.Decimal(18, 2)
-  requiereAval       Boolean       @default(false, map: "DF__Publicaci__requi__02084FDA")
+  requiereAval       Boolean       @default(false, map: "DF__Publicaci__requi__05D8E0BE")
   plazoMinimoMeses   Int?
   plazoMaximoMeses   Int?
   tipoOperacion      String        @db.NVarChar(20)
@@ -190,21 +190,21 @@ model Publicacion {
 }
 
 model Servicios {
-  idServicio        Int      @id(map: "PK__Servicio__CEB98119B27E8643") @default(autoincrement())
-  idInmueble        Int      @unique(map: "UQ__Servicio__2E07DFFE9EC6333A")
-  aguaPotable       Boolean  @default(false, map: "DF__Servicios__aguaP__6C190EBB")
-  cable             Boolean  @default(false, map: "DF__Servicios__cable__6D0D32F4")
-  drenaje           Boolean  @default(false, map: "DF__Servicios__drena__6E01572D")
-  electricidad      Boolean  @default(false, map: "DF__Servicios__elect__6EF57B66")
-  gasEstacionario   Boolean  @default(false, map: "DF__Servicios__gasEs__6FE99F9F")
-  internet          Boolean  @default(false, map: "DF__Servicios__inter__70DDC3D8")
-  telefono          Boolean  @default(false, map: "DF__Servicios__telef__71D1E811")
-  transportePublico Boolean  @default(false, map: "DF__Servicios__trans__72C60C4A")
+  idServicio        Int      @id(map: "PK__Servicio__CEB9811940D83579") @default(autoincrement())
+  idInmueble        Int      @unique(map: "UQ__Servicio__2E07DFFEBB030821")
+  aguaPotable       Boolean  @default(false, map: "DF__Servicios__aguaP__6FE99F9F")
+  cable             Boolean  @default(false, map: "DF__Servicios__cable__70DDC3D8")
+  drenaje           Boolean  @default(false, map: "DF__Servicios__drena__71D1E811")
+  electricidad      Boolean  @default(false, map: "DF__Servicios__elect__72C60C4A")
+  gasEstacionario   Boolean  @default(false, map: "DF__Servicios__gasEs__73BA3083")
+  internet          Boolean  @default(false, map: "DF__Servicios__inter__74AE54BC")
+  telefono          Boolean  @default(false, map: "DF__Servicios__telef__75A278F5")
+  transportePublico Boolean  @default(false, map: "DF__Servicios__trans__76969D2E")
   Inmueble          Inmueble @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Servicios__idInm__778AC167")
 }
 
 model SubtipoInmueble {
-  idSubtipo         Int               @id(map: "PK__SubtipoI__B32E03DAE4AD08D5") @default(autoincrement())
+  idSubtipo         Int               @id(map: "PK__SubtipoI__B32E03DAE5828BE3") @default(autoincrement())
   nombre            String            @db.NVarChar(50)
   idCategoria       Int
   Inmueble          Inmueble[]
@@ -212,32 +212,39 @@ model SubtipoInmueble {
 }
 
 model Usuario {
-  idUsuario         Int          @id(map: "PK__Usuario__645723A66EC7FC18") @default(autoincrement())
-  correoElectronico String       @unique(map: "UQ__Usuario__ED1E3B6E136608FB") @db.NVarChar(100)
-  hashPassword      String       @db.NVarChar(255)
-  nombre            String       @db.NVarChar(50)
-  apellidos         String       @db.NVarChar(50)
-  fechaNacimiento   DateTime     @db.Date
-  nacionalidad      String       @db.NVarChar(50)
-  telefono          String       @db.NVarChar(20)
-  telefonoFijo      String?      @db.NVarChar(20)
-  fechaRegistro     DateTime     @default(now(), map: "DF__Usuario__fechaRe__3F466844") @db.DateTime
-  estadoCuenta      String       @default("Activo", map: "DF__Usuario__estadoC__403A8C7D") @db.NVarChar(20)
-  rol               String       @db.NVarChar(20)
-  idDireccion       Int
+  idUsuario         Int            @id(map: "PK__Usuario__645723A60E633995") @default(autoincrement())
+  correoElectronico String         @unique(map: "UQ__Usuario__ED1E3B6EECD9E209") @db.NVarChar(100)
+  hashPassword      String         @db.NVarChar(255)
+  nombre            String         @db.NVarChar(50)
+  apellidos         String         @db.NVarChar(50)
+  fechaNacimiento   DateTime       @db.Date
+  nacionalidad      String         @db.NVarChar(50)
+  telefono          String         @db.NVarChar(20)
+  telefonoFijo      String?        @db.NVarChar(20)
+  fechaRegistro     DateTime       @default(now(), map: "DF__Usuario__fechaRe__3F466844") @db.DateTime
+  estadoCuenta      String         @default("Activo", map: "DF__Usuario__estadoC__403A8C7D") @db.NVarChar(20)
+  rol               String         @db.NVarChar(20)
+  idDireccion       Int?
+  Administrador     Administrador?
   Archivo           Archivo[]
   Arrendador        Arrendador?
   Cliente           Cliente?
   MetodoPago        MetodoPago[]
-  Direccion         Direccion    @relation(fields: [idDireccion], references: [idDireccion], onUpdate: NoAction, map: "FK__Usuario__idDirec__412EB0B6")
+  Direccion         Direccion?     @relation(fields: [idDireccion], references: [idDireccion], onDelete: NoAction, onUpdate: NoAction, map: "FK__Usuario__idDirec__412EB0B6")
 }
 
 model Visita {
-  idVisita        Int      @id(map: "PK__Visita__0F55DBEC444C45F5") @default(autoincrement())
+  idVisita        Int      @id(map: "PK__Visita__0F55DBEC67FB7E6E") @default(autoincrement())
   idInmueble      Int
   idCliente       Int
   fechaProgramada DateTime @db.DateTime
-  estado          String   @default("Programada", map: "DF__Visita__estado__114A936A") @db.NVarChar(20)
+  estado          String   @default("Programada", map: "DF__Visita__estado__151B244E") @db.NVarChar(20)
   Cliente         Cliente  @relation(fields: [idCliente], references: [idUsuario], onUpdate: NoAction, map: "FK__Visita__idClient__17036CC0")
   Inmueble        Inmueble @relation(fields: [idInmueble], references: [idInmueble], onUpdate: NoAction, map: "FK__Visita__idInmueb__160F4887")
+}
+
+model Administrador {
+  idUsuario   Int     @id(map: "PK__Administ__645723A6671E6A70")
+  nivelAcceso String  @default("Standard", map: "DF__Administr__nivel__440B1D61") @db.NVarChar(50)
+  Usuario     Usuario @relation(fields: [idUsuario], references: [idUsuario], onUpdate: NoAction, map: "FK__Administr__idUsu__44FF419A")
 }
