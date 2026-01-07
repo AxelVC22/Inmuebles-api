@@ -125,7 +125,7 @@ const registerPayment = async (req, res, next) => {
       return res.status(404).json({ error: 'El inmueble no tiene una publicación activa.' });
     }
 
-    const nuevoEstado = property.Publicacion.tipoOperacion === 'Venta' ? 'Vendido' : 'Rentado';
+    const nuevoEstado = property.Publicacion.tipoOperacion === 'Venta' ? 'Vendida' : 'Rentada';
 
     const result = await prisma.$transaction(async (tx) => {
       const fakeReference = generateFakeReference(method.tipo);
