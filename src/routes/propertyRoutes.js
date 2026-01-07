@@ -13,6 +13,7 @@ const {
   getMyProperties,
   searchProperties,
   getRecommendedProperties,
+  togglePropertyStatus,
 } = require('../controllers/propertyController');
 
 router.get('/', searchProperties);
@@ -36,5 +37,6 @@ router.post(
   uploadPropertyImages,
 );
 router.delete('/:id/images/:imgId', verifyToken, deletePropertyImage);
+router.put('/:id/status', verifyToken, togglePropertyStatus);
 
 module.exports = router;
