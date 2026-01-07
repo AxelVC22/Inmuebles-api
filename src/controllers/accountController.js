@@ -77,7 +77,7 @@ const updateProfile = async (req, res, next) => {
       };
     }
 
-    if (data.preferencias && req.user.rol === 'Cliente') {
+    if (data.preferencias) {
       updateData.Cliente = {
         upsert: {
           create: {

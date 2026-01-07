@@ -16,15 +16,15 @@ const {
 } = require('../controllers/propertyController');
 
 router.get('/', searchProperties);
-router.get('/my-properties', verifyToken, authorizeRole(['Arrendador']), getMyProperties);
+router.get('/my-properties', verifyToken, getMyProperties);
+router.get('/recommended', verifyToken, getRecommendedProperties);
 router.get('/:id', getPropertyById);
 router.get('/:id/images', getFilesByProperty);
-router.post('/', verifyToken, authorizeRole(['Arrendador']), createProperty);
-router.put('/:id', verifyToken, authorizeRole(['Arrendador']), updateProperty);
+router.post('/', verifyToken, createProperty);
+router.put('/:id', verifyToken, updateProperty);
 router.post(
   '/:id/images',
   verifyToken,
-  authorizeRole(['Arrendador']),
   (req, res, next) => {
     upload.array('images', 10)(req, res, (err) => {
       if (err) {
@@ -35,13 +35,6 @@ router.post(
   },
   uploadPropertyImages,
 );
-router.delete(
-  '/:id/images/:imgId',
-  verifyToken,
-  authorizeRole(['Arrendador']),
-  deletePropertyImage,
-);
-
-router.get('/recommended', verifyToken, authorizeRole(['Cliente']), getRecommendedProperties);
+router.delete('/:id/images/:imgId', verifyToken, deletePropertyImage);
 
 module.exports = router;

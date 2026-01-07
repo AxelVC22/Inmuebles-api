@@ -135,7 +135,7 @@ const loginUser = async (req, res) => {
       idCliente: user.Cliente ? user.Cliente.idUsuario : null,
     };
 
-    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '20m' });
+    const token = jwt.sign(tokenPayload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     res.json({
       message: `Bienvenido, ${user.nombre}`,
