@@ -26,6 +26,10 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ error: 'La dirección es obligatoria.' });
     }
 
+    if (!rfc) {
+      return res.status(400).json({ error: 'El RFC es obligatorio para todos los usuarios.' });
+    }
+
     const existingUser = await prisma.usuario.findUnique({ where: { correoElectronico: email } });
     if (existingUser) {
       return res.status(400).json({ error: 'El correo electrónico ya está registrado.' });
@@ -60,20 +64,28 @@ const registerUser = async (req, res) => {
         create: {
           Preferencias: {
             create: {
-              presupuestoMin: presupuestoMin ? parseFloat(presupuestoMin) : undefined,
-              presupuestoMax: presupuestoMax ? parseFloat(presupuestoMax) : undefined,
+              presupuestoMin:
+                presupuestoMin !== undefined && presupuestoMin !== null && presupuestoMin !== ''
+                  ? parseFloat(presupuestoMin)
+                  : 0,
+
+              presupuestoMax:
+                presupuestoMax !== undefined && presupuestoMax !== null && presupuestoMax !== ''
+                  ? parseFloat(presupuestoMax)
+                  : 100000000,
+
               idCategoria: idCategoria ? parseInt(idCategoria) : undefined,
             },
           },
         },
       },
+
+      Arrendador: {
+        create: {
+          rfc: rfc,
+        },
+      },
     };
-
-    if (rol === 'Arrendador') {
-      if (!rfc) return res.status(400).json({ error: 'El RFC es obligatorio para Arrendadores' });
-
-      userData.Arrendador = { create: { rfc: rfc } };
-    }
 
     const usuarioGuardado = await prisma.usuario.create({
       data: userData,
@@ -90,6 +102,7 @@ const registerUser = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Error interno al registrar el usuario' });
   }
 };
