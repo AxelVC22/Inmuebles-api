@@ -101,9 +101,10 @@ const getPaymentMethods = async (req, res, next) => {
 const registerPayment = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { idMetodo, monto } = req.body;
+    const { idMetodo, monto, idInmueble } = req.body;
     const amount = parseFloat(monto);
     const methodId = parseInt(idMetodo);
+    const propertyId = parseInt(idInmueble);
 
     const method = await prisma.metodoPago.findUnique({
       where: { idMetodo: methodId },
@@ -115,27 +116,53 @@ const registerPayment = async (req, res, next) => {
       });
     }
 
-    const fakeReference = generateFakeReference(method.tipo);
-    const simulatedStatus = 'Pagado';
+    const property = await prisma.inmueble.findUnique({
+      where: { idInmueble: propertyId },
+      include: { Publicacion: true },
+    });
 
-    const newPayment = await prisma.pago.create({
-      data: {
-        idMetodo: methodId,
-        monto: amount,
-        fecha: new Date(),
-        estado: simulatedStatus,
-        referenciaPasarela: fakeReference,
-      },
+    if (!property || !property.Publicacion) {
+      return res.status(404).json({ error: 'El inmueble no tiene una publicación activa.' });
+    }
+
+    const nuevoEstado = property.Publicacion.tipoOperacion === 'Venta' ? 'Vendido' : 'Rentado';
+
+    const result = await prisma.$transaction(async (tx) => {
+      const fakeReference = generateFakeReference(method.tipo);
+      const newPayment = await tx.pago.create({
+        data: {
+          idMetodo: methodId,
+          monto: amount,
+          fecha: new Date(),
+          estado: 'Pagado',
+          referenciaPasarela: fakeReference,
+        },
+      });
+
+      const updatedPublicacion = await tx.publicacion.update({
+        where: { idInmueble: propertyId },
+        data: { estado: nuevoEstado },
+      });
+
+      await tx.historialEstado.create({
+        data: {
+          idInmueble: propertyId,
+          estado: nuevoEstado,
+          motivoCambio: `Pago confirmado mediante ${method.tipo}. Ref: ${fakeReference}`,
+        },
+      });
+
+      return { newPayment, updatedPublicacion };
     });
 
     res.status(200).json({
-      message: 'Pago procesado correctamente.',
+      message: 'Pago procesado exitosamente.',
       ticket: {
-        folio: newPayment.idPago,
-        monto: newPayment.monto,
-        estado: newPayment.estado,
-        referencia: newPayment.referenciaPasarela,
-        fecha: newPayment.fecha,
+        folio: result.newPayment.idPago,
+        monto: result.newPayment.monto,
+        referencia: result.newPayment.referenciaPasarela,
+        nuevoEstadoInmueble: result.updatedPublicacion.estado,
+        fecha: result.newPayment.fecha,
         tipo: method.tipo,
         detalle: method.datosHasheados,
       },

@@ -30,6 +30,16 @@ const getPropertyById = async (req, res, next) => {
             CategoriaInmueble: true,
           },
         },
+        Arrendador: {
+          include: {
+            Usuario: {
+              select: {
+                nombre: true,
+                apellidos: true,
+              },
+            },
+          },
+        },
         Archivo: {
           where: { visible: true },
           orderBy: { idArchivo: 'asc' },
@@ -485,7 +495,7 @@ const getFilesByProperty = async (req, res, next) => {
 
 const getMyProperties = async (req, res, next) => {
   try {
-    const userId = req.user.idUsuario;
+    const userId = req.user.id;
 
     const properties = await prisma.inmueble.findMany({
       where: { idArrendador: userId },
@@ -531,12 +541,13 @@ const searchProperties = async (req, res, next) => {
   try {
     const { titulo, idCategoria, page = 1, limit = 20 } = req.query;
 
-    if (!titulo && !idCategoria) {
+    /* if (!titulo && !idCategoria) {
       return res.status(400).json({
         success: false,
         message: 'Debes proporcionar al menos un parámetro de búsqueda: titulo o idCategoria',
       });
     }
+    */
 
     const whereConditions = {
       Publicacion: {
@@ -547,7 +558,6 @@ const searchProperties = async (req, res, next) => {
     if (titulo) {
       whereConditions.titulo = {
         contains: titulo,
-        mode: 'insensitive',
       };
     }
 
@@ -672,6 +682,81 @@ const getRecommendedProperties = async (req, res, next) => {
   }
 };
 
+const togglePropertyStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const property = await prisma.inmueble.findUnique({
+      where: { idInmueble: parseInt(id) },
+      include: {
+        Publicacion: true,
+        Arrendador: true,
+      },
+    });
+
+    if (!property) {
+      return res.status(404).json({
+        success: false,
+        message: 'Propiedad no encontrada',
+      });
+    }
+
+    if (property.Arrendador.idUsuario !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: 'No tienes permiso para modificar el estado de esta propiedad.',
+      });
+    }
+
+    if (!property.Publicacion) {
+      return res.status(400).json({
+        success: false,
+        message: 'Esta propiedad no tiene una publicación asociada válida.',
+      });
+    }
+
+    const currentStatus = property.Publicacion.estado;
+    let newStatus = '';
+    let motivo = '';
+
+    if (currentStatus === 'Publicada') {
+      newStatus = 'Pausada';
+      motivo = 'Pausada por el usuario';
+    } else if (currentStatus === 'Pausada') {
+      newStatus = 'Publicada';
+      motivo = 'Reactivada por el usuario';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: `No se puede cambiar el estado de una propiedad '${currentStatus}'.`,
+      });
+    }
+
+    const result = await prisma.$transaction([
+      prisma.publicacion.update({
+        where: { idPublicacion: property.Publicacion.idPublicacion },
+        data: { estado: newStatus },
+      }),
+      prisma.historialEstado.create({
+        data: {
+          idInmueble: property.idInmueble,
+          estado: newStatus,
+          motivoCambio: motivo,
+        },
+      }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: `La publicación ha sido ${newStatus === 'Publicada' ? 'reactivada' : 'pausada'} exitosamente.`,
+      newStatus: newStatus,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getPropertyById,
   createProperty,
@@ -682,4 +767,5 @@ module.exports = {
   getMyProperties,
   searchProperties,
   getRecommendedProperties,
+  togglePropertyStatus,
 };
