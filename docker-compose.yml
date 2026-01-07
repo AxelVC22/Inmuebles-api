@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: inmobiliaria_sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Inmobiliaria123!
+      - MSSQL_PID=Developer
+    ports:
+      - '1433:1433'
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+      - ./init-user.sql:/docker-entrypoint-initdb.d/02-init-user.sql:ro
+    networks:
+      - inmobiliaria_network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Inmobiliaria123! -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inmobiliaria_api
+    environment:
+      - DATABASE_URL=sqlserver://sqlserver:1433;database=InmobiliariaDB;user=inmobiliaria_user;password=Inmobiliaria123!;encrypt=true;trustServerCertificate=true
+      - SERVER_PORT=3001
+      - DB_HOST=sqlserver
+      - NODE_ENV=development
+      - JWT_SECRET=0b3172abf0d13a561709b672e2f414f8
+      - EMAIL_USER=inmobiliariadsw@gmail.com
+      - EMAIL_PASS=dnis fbms wvgx cyqg
+    ports:
+      - '3001:3001'
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    networks:
+      - inmobiliaria_network
+    command: sh -c "npx prisma generate && npm run dev"
+
+volumes:
+  sqlserver_data:
+    driver: local
+
+networks:
+  inmobiliaria_network:
+    driver: bridge
