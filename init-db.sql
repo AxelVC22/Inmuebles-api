@@ -1,4 +1,7 @@
-CREATE DATABASE InmobiliariaDB;
+IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'InmobiliariaDB')
+BEGIN
+    CREATE DATABASE InmobiliariaDB;
+END
 GO
 USE InmobiliariaDB;
 GO
