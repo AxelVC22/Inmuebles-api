@@ -717,6 +717,13 @@ const togglePropertyStatus = async (req, res, next) => {
     }
 
     const currentStatus = property.Publicacion.estado;
+    if (currentStatus === 'Vendida' || currentStatus === 'Rentada') {
+      return res.status(400).json({
+        success: false,
+        message: `No puedes pausar ni modificar una propiedad que ya ha sido ${currentStatus.toLowerCase()}.`,
+      });
+    }
+
     let newStatus = '';
     let motivo = '';
 
